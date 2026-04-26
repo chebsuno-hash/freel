@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { 
   HiOutlineUser, 
   HiOutlineBriefcase, 
@@ -8,6 +8,7 @@ import {
   HiOutlineSparkles,
   HiOutlineTrophy,
   HiOutlineTrash,
+  HiOutlineDocumentArrowUp,
   HiCheck
 } from "react-icons/hi2";
 
@@ -17,6 +18,8 @@ interface Certification {
   issuer: string;
   date: string;
   url: string;
+  file: File | null;
+  fileName: string;
 }
 
 const STEPS = [
@@ -29,17 +32,34 @@ const STEPS = [
 
 export default function ProfilStepper() {
   const [activeStep, setActiveStep] = useState("personal");
-  const [certifications, setCertifications] = useState<Certification[]>([]);
-  const [certForm, setCertForm] = useState({ name: "", issuer: "", date: "", url: "" });
+  const [certifications, setCertifications] = useState<Certification[]>([
+    { id: Date.now().toString(), name: "", issuer: "", date: "", url: "", file: null, fileName: "" },
+  ]);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const updateCertification = (id: string, field: keyof Certification, value: string | File | null) => {
+    setCertifications((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, [field]: value } : c))
+    );
+  };
 
   const addCertification = () => {
-    if (!certForm.name.trim() || !certForm.issuer.trim()) return;
-    setCertifications((prev) => [...prev, { ...certForm, id: Date.now().toString() }]);
-    setCertForm({ name: "", issuer: "", date: "", url: "" });
+    setCertifications((prev) => [
+      ...prev,
+      { id: Date.now().toString(), name: "", issuer: "", date: "", url: "", file: null, fileName: "" },
+    ]);
   };
 
   const removeCertification = (id: string) => {
+    if (certifications.length <= 1) return;
     setCertifications((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  const handleFileChange = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setCertifications((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, file, fileName: file?.name || "" } : c))
+    );
   };
 
   return (
@@ -250,48 +270,98 @@ export default function ProfilStepper() {
                   <h2 className="text-lg font-bold text-gray-900">Certifications</h2>
                 </div>
 
-                {/* Existing certifications */}
-                {certifications.length > 0 && (
-                  <div className="space-y-3">
-                    {certifications.map((cert) => (
-                      <div key={cert.id} className="flex items-start justify-between p-4 bg-gray-50 border border-gray-100 rounded-xl group hover:border-[#00b8d9]/30 transition-colors">
-                        <div className="space-y-0.5">
-                          <p className="text-sm font-bold text-gray-900">{cert.name}</p>
-                          <p className="text-xs text-gray-500">{cert.issuer}{cert.date ? ` • ${cert.date}` : ""}</p>
-                          {cert.url && <a href={cert.url} target="_blank" rel="noreferrer" className="text-xs text-[#00b8d9] hover:underline">{cert.url}</a>}
+                {/* Certification blocks via .map() */}
+                <div className="space-y-5">
+                  {certifications.map((cert, index) => (
+                    <div key={cert.id} className="relative p-5 border border-gray-200 rounded-xl bg-gray-50/50 space-y-4 transition-all hover:border-[#00b8d9]/30">
+                      {/* Block header with number + delete */}
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Certification {index + 1}</span>
+                        {certifications.length > 1 && (
+                          <button
+                            onClick={() => removeCertification(cert.id)}
+                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Supprimer ce bloc"
+                          >
+                            <HiOutlineTrash className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nom de la certification</label>
+                          <input
+                            type="text"
+                            placeholder="Ex: AWS Certified Solutions Architect"
+                            value={cert.name}
+                            onChange={(e) => updateCertification(cert.id, "name", e.target.value)}
+                            className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-[#00b8d9]/50 focus:border-[#00b8d9] transition-all"
+                          />
                         </div>
-                        <button onClick={() => removeCertification(cert.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer">
-                          <HiOutlineTrash className="w-4 h-4" />
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Organisme de délivrance</label>
+                          <input
+                            type="text"
+                            placeholder="Ex: Amazon Web Services"
+                            value={cert.issuer}
+                            onChange={(e) => updateCertification(cert.id, "issuer", e.target.value)}
+                            className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-[#00b8d9]/50 focus:border-[#00b8d9] transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Date d&apos;obtention</label>
+                          <input
+                            type="month"
+                            value={cert.date}
+                            onChange={(e) => updateCertification(cert.id, "date", e.target.value)}
+                            className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-[#00b8d9]/50 focus:border-[#00b8d9] transition-all cursor-pointer"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-1.5">URL de vérification <span className="text-gray-400 font-normal">(optionnel)</span></label>
+                          <input
+                            type="url"
+                            placeholder="https://..."
+                            value={cert.url}
+                            onChange={(e) => updateCertification(cert.id, "url", e.target.value)}
+                            className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-[#00b8d9]/50 focus:border-[#00b8d9] transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      {/* File upload */}
+                      <div>
+                        <input
+                          type="file"
+                          accept=".pdf,.png,.jpg,.jpeg"
+                          ref={(el) => { fileInputRefs.current[cert.id] = el; }}
+                          onChange={(e) => handleFileChange(cert.id, e)}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => fileInputRefs.current[cert.id]?.click()}
+                          className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-600 bg-white border border-gray-200 rounded-lg hover:border-[#00b8d9] hover:text-[#00b8d9] transition-colors cursor-pointer"
+                        >
+                          <HiOutlineDocumentArrowUp className="w-4 h-4" />
+                          {cert.fileName ? cert.fileName : "Joindre le certificat (PDF/Image)"}
                         </button>
                       </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Add form */}
-                <div className="p-5 border border-dashed border-gray-200 rounded-xl bg-gray-50/50 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nom de la certification</label>
-                      <input type="text" placeholder="Ex: AWS Certified Solutions Architect" value={certForm.name} onChange={(e) => setCertForm({ ...certForm, name: e.target.value })} className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-[#00b8d9]/50 focus:border-[#00b8d9] transition-all" />
                     </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Organisme de délivrance</label>
-                      <input type="text" placeholder="Ex: Amazon Web Services" value={certForm.issuer} onChange={(e) => setCertForm({ ...certForm, issuer: e.target.value })} className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-[#00b8d9]/50 focus:border-[#00b8d9] transition-all" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Date d&apos;obtention</label>
-                      <input type="month" value={certForm.date} onChange={(e) => setCertForm({ ...certForm, date: e.target.value })} className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-[#00b8d9]/50 focus:border-[#00b8d9] transition-all" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">URL de vérification <span className="text-gray-400 font-normal">(optionnel)</span></label>
-                      <input type="url" placeholder="https://..." value={certForm.url} onChange={(e) => setCertForm({ ...certForm, url: e.target.value })} className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-[#00b8d9]/50 focus:border-[#00b8d9] transition-all" />
-                    </div>
-                  </div>
-                  <button onClick={addCertification} className="text-sm font-bold text-[#00b8d9] hover:underline">+ Ajouter une autre certification</button>
+                  ))}
                 </div>
+
+                {/* Add another */}
+                <button
+                  onClick={addCertification}
+                  className="w-full py-3 text-sm font-bold text-[#00b8d9] border-2 border-dashed border-[#00b8d9]/30 rounded-xl hover:bg-[#00b8d9]/5 transition-colors"
+                >
+                  + Ajouter une autre certification
+                </button>
 
                 <div className="flex justify-between pt-8 border-t border-gray-100 mt-8">
                   <button onClick={() => setActiveStep("skills")} className="px-6 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Retour</button>

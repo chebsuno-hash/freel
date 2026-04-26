@@ -15,6 +15,7 @@ import {
   HiUser,
   HiBell,
   HiMagnifyingGlass,
+  HiChatBubbleLeftRight,
 } from "react-icons/hi2";
 
 const candidatLinks = [
@@ -23,6 +24,7 @@ const candidatLinks = [
   { label: "Mon CV", href: "/dashboard/candidat/cv", icon: HiDocumentText },
   { label: "Offres de mission", href: "/dashboard/candidat/offres", icon: HiMagnifyingGlass },
   { label: "Mes Candidatures", href: "/dashboard/candidat/candidatures", icon: HiBriefcase },
+  { label: "Messagerie", href: "/dashboard/candidat/messagerie", icon: HiChatBubbleLeftRight },
   { label: "Paramètres", href: "/dashboard/candidat/parametres", icon: HiCog6Tooth },
 ];
 
@@ -30,6 +32,7 @@ const recruteurLinks = [
   { label: "Rechercher", href: "/dashboard/recruteur", icon: HiMagnifyingGlass },
   { label: "Mes Offres", href: "/dashboard/recruteur/offres", icon: HiBriefcase },
   { label: "Candidats Sauvegardés", href: "/dashboard/recruteur/sauvegardes", icon: HiUser },
+  { label: "Messagerie", href: "/dashboard/recruteur/messagerie", icon: HiChatBubbleLeftRight },
   { label: "Paramètres", href: "/dashboard/recruteur/parametres", icon: HiCog6Tooth },
 ];
 
@@ -41,9 +44,11 @@ const pageTitles: Record<string, string> = {
   "/dashboard/candidat/offres": "Offres de mission",
   "/dashboard/candidat/candidatures": "Mes Candidatures",
   "/dashboard/candidat/parametres": "Paramètres",
+  "/dashboard/candidat/messagerie": "Messagerie",
   "/dashboard/recruteur": "Rechercher des candidats",
   "/dashboard/recruteur/offres": "Mes Offres",
   "/dashboard/recruteur/sauvegardes": "Candidats Sauvegardés",
+  "/dashboard/recruteur/messagerie": "Messagerie",
   "/dashboard/recruteur/parametres": "Paramètres",
 };
 
