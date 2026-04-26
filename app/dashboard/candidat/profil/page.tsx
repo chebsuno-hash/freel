@@ -6,18 +6,41 @@ import {
   HiOutlineBriefcase, 
   HiOutlineAcademicCap, 
   HiOutlineSparkles,
+  HiOutlineTrophy,
+  HiOutlineTrash,
   HiCheck
 } from "react-icons/hi2";
+
+interface Certification {
+  id: string;
+  name: string;
+  issuer: string;
+  date: string;
+  url: string;
+}
 
 const STEPS = [
   { id: "personal", label: "Informations personnelles", icon: HiOutlineUser },
   { id: "experience", label: "Expériences", icon: HiOutlineBriefcase },
   { id: "education", label: "Formations", icon: HiOutlineAcademicCap },
   { id: "skills", label: "Compétences", icon: HiOutlineSparkles },
+  { id: "certifications", label: "Certifications", icon: HiOutlineTrophy },
 ];
 
 export default function ProfilStepper() {
   const [activeStep, setActiveStep] = useState("personal");
+  const [certifications, setCertifications] = useState<Certification[]>([]);
+  const [certForm, setCertForm] = useState({ name: "", issuer: "", date: "", url: "" });
+
+  const addCertification = () => {
+    if (!certForm.name.trim() || !certForm.issuer.trim()) return;
+    setCertifications((prev) => [...prev, { ...certForm, id: Date.now().toString() }]);
+    setCertForm({ name: "", issuer: "", date: "", url: "" });
+  };
+
+  const removeCertification = (id: string) => {
+    setCertifications((prev) => prev.filter((c) => c.id !== id));
+  };
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -213,6 +236,65 @@ export default function ProfilStepper() {
 
                 <div className="flex justify-between pt-8 border-t border-gray-100 mt-8">
                   <button onClick={() => setActiveStep("education")} className="px-6 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Retour</button>
+                  <button onClick={() => setActiveStep("certifications")} className="px-6 py-2.5 text-sm font-bold text-white rounded-lg transition-transform hover:-translate-y-0.5 shadow-md" style={{ backgroundColor: "#00b8d9" }}>
+                    Suivant
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step: Certifications */}
+            {activeStep === "certifications" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+                <div className="flex justify-between items-center border-b border-gray-100 pb-2 mb-6">
+                  <h2 className="text-lg font-bold text-gray-900">Certifications</h2>
+                </div>
+
+                {/* Existing certifications */}
+                {certifications.length > 0 && (
+                  <div className="space-y-3">
+                    {certifications.map((cert) => (
+                      <div key={cert.id} className="flex items-start justify-between p-4 bg-gray-50 border border-gray-100 rounded-xl group hover:border-[#00b8d9]/30 transition-colors">
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-bold text-gray-900">{cert.name}</p>
+                          <p className="text-xs text-gray-500">{cert.issuer}{cert.date ? ` • ${cert.date}` : ""}</p>
+                          {cert.url && <a href={cert.url} target="_blank" rel="noreferrer" className="text-xs text-[#00b8d9] hover:underline">{cert.url}</a>}
+                        </div>
+                        <button onClick={() => removeCertification(cert.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer">
+                          <HiOutlineTrash className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add form */}
+                <div className="p-5 border border-dashed border-gray-200 rounded-xl bg-gray-50/50 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Nom de la certification</label>
+                      <input type="text" placeholder="Ex: AWS Certified Solutions Architect" value={certForm.name} onChange={(e) => setCertForm({ ...certForm, name: e.target.value })} className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-[#00b8d9]/50 focus:border-[#00b8d9] transition-all" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Organisme de délivrance</label>
+                      <input type="text" placeholder="Ex: Amazon Web Services" value={certForm.issuer} onChange={(e) => setCertForm({ ...certForm, issuer: e.target.value })} className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-[#00b8d9]/50 focus:border-[#00b8d9] transition-all" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Date d&apos;obtention</label>
+                      <input type="month" value={certForm.date} onChange={(e) => setCertForm({ ...certForm, date: e.target.value })} className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-[#00b8d9]/50 focus:border-[#00b8d9] transition-all" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">URL de vérification <span className="text-gray-400 font-normal">(optionnel)</span></label>
+                      <input type="url" placeholder="https://..." value={certForm.url} onChange={(e) => setCertForm({ ...certForm, url: e.target.value })} className="w-full px-4 py-2.5 text-sm bg-white border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-[#00b8d9]/50 focus:border-[#00b8d9] transition-all" />
+                    </div>
+                  </div>
+                  <button onClick={addCertification} className="text-sm font-bold text-[#00b8d9] hover:underline">+ Ajouter une autre certification</button>
+                </div>
+
+                <div className="flex justify-between pt-8 border-t border-gray-100 mt-8">
+                  <button onClick={() => setActiveStep("skills")} className="px-6 py-2.5 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Retour</button>
                   <button className="flex items-center gap-2 px-8 py-2.5 text-sm font-bold text-white rounded-lg transition-transform hover:-translate-y-0.5 shadow-md" style={{ backgroundColor: "#10b981" }}>
                     <HiCheck className="w-5 h-5" /> Terminer mon profil
                   </button>
