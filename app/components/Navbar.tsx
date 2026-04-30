@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { HiMenu, HiX } from "react-icons/hi";
 import { HiMagnifyingGlass, HiMapPin } from "react-icons/hi2";
 import Link from "next/link";
@@ -9,7 +10,6 @@ import LoginModal from "./LoginModal";
 import RegisterModal from "./RegisterModal";
 
 const navLinks = [
-  { label: "Offres", href: "/offres" },
   { label: "Missions", href: "/offres" },
   { label: "Communauté", href: "/communaute" },
   { label: "Blog", href: "/blog" },
@@ -23,8 +23,11 @@ export default function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => { setMounted(true); }, []);
+
+  const isLinkActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   const { user, loading, logout } = useAuth();
 
@@ -56,16 +59,28 @@ export default function Navbar() {
             </Link>
 
             {/* Desktop Center Links */}
-            <div className="hidden lg:flex items-center gap-6 ml-8">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  className="text-sm font-semibold text-gray-600 hover:text-[#00b8d9] transition-colors"
-                >
-                  {link.label}
-                </Link>
-              ))}
+            <div className="hidden lg:flex items-center gap-6 ml-8 h-full">
+              {navLinks.map((link) => {
+                const active = isLinkActive(link.href);
+                return (
+                  <Link
+                    key={link.label}
+                    href={link.href}
+                    className="relative text-sm font-semibold transition-colors h-full flex items-center"
+                    style={{ color: active ? "#00b8d9" : "#4b5563" }}
+                    onMouseEnter={(e) => { if (!active) e.currentTarget.style.color = "#00b8d9"; }}
+                    onMouseLeave={(e) => { if (!active) e.currentTarget.style.color = "#4b5563"; }}
+                  >
+                    {link.label}
+                    {active && (
+                      <span
+                        className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full"
+                        style={{ backgroundColor: "#00b8d9" }}
+                      />
+                    )}
+                  </Link>
+                );
+              })}
             </div>
 
             {/* Small Header Search (Optional as per prompt) */}
@@ -231,16 +246,24 @@ export default function Navbar() {
         {/* Mobile Menu */}
         {mobileOpen && (
           <div className="lg:hidden bg-white border-t border-gray-100 p-4 space-y-3">
-            {navLinks.map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
-                className="block text-sm font-bold text-gray-700 py-2"
-                onClick={() => setMobileOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const active = isLinkActive(link.href);
+              return (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className="block text-sm font-bold py-2.5 px-3 rounded-lg transition-colors"
+                  style={{
+                    color: active ? "#00b8d9" : "#374151",
+                    backgroundColor: active ? "rgba(0,184,217,0.06)" : "transparent",
+                    borderLeft: active ? "3px solid #00b8d9" : "3px solid transparent",
+                  }}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
             <div className="pt-4 flex flex-col gap-2">
                {!user && (
                  <>
