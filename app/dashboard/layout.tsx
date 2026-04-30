@@ -16,6 +16,7 @@ import {
   HiBell,
   HiMagnifyingGlass,
   HiChatBubbleLeftRight,
+  HiHeart,
 } from "react-icons/hi2";
 
 const candidatLinks = [
@@ -24,6 +25,7 @@ const candidatLinks = [
   { label: "Mon CV", href: "/dashboard/candidat/cv", icon: HiDocumentText },
   { label: "Offres de mission", href: "/dashboard/candidat/offres", icon: HiMagnifyingGlass },
   { label: "Mes Candidatures", href: "/dashboard/candidat/candidatures", icon: HiBriefcase },
+  { label: "Mes Favoris", href: "/dashboard/candidat/favoris", icon: HiHeart },
   { label: "Messagerie", href: "/dashboard/candidat/messagerie", icon: HiChatBubbleLeftRight },
   { label: "Paramètres", href: "/dashboard/candidat/parametres", icon: HiCog6Tooth },
 ];
@@ -43,6 +45,7 @@ const pageTitles: Record<string, string> = {
   "/dashboard/candidat/cv": "Mon CV",
   "/dashboard/candidat/offres": "Offres de mission",
   "/dashboard/candidat/candidatures": "Mes Candidatures",
+  "/dashboard/candidat/favoris": "Mes Favoris",
   "/dashboard/candidat/parametres": "Paramètres",
   "/dashboard/candidat/messagerie": "Messagerie",
   "/dashboard/recruteur": "Rechercher des candidats",
