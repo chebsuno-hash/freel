@@ -1,21 +1,574 @@
 "use client";
 
-import { HiBriefcase, HiClock, HiCheckCircle, HiXCircle } from "react-icons/hi2";
+import { useState, useMemo } from "react";
+import {
+  HiBriefcase,
+  HiClock,
+  HiCheckCircle,
+  HiXCircle,
+  HiXMark,
+  HiPencilSquare,
+  HiTrash,
+  HiCalendarDays,
+  HiBuildingOffice2,
+  HiDocumentText,
+  HiExclamationTriangle,
+  HiInformationCircle,
+  HiChevronRight,
+} from "react-icons/hi2";
 
-const mockApplications = [
-  { id: 1, title: "Développeur React Senior", company: "TechCorp", date: "22 avr. 2026", status: "pending", tags: ["React", "TypeScript"] },
-  { id: 2, title: "Full-Stack Node.js", company: "StartupFlow", date: "18 avr. 2026", status: "accepted", tags: ["Node.js", "MongoDB"] },
-  { id: 3, title: "Lead Frontend", company: "DataViz Pro", date: "15 avr. 2026", status: "rejected", tags: ["Vue", "D3.js"] },
-  { id: 4, title: "Ingénieur DevOps", company: "CloudScale", date: "10 avr. 2026", status: "pending", tags: ["Docker", "AWS"] },
+// ─── Types ───────────────────────────────────────────────────────
+type ApplicationStatus = "pending" | "accepted" | "rejected";
+
+interface Application {
+  id: number;
+  title: string;
+  company: string;
+  date: string;
+  status: ApplicationStatus;
+  tags: string[];
+  coverLetter: string;
+}
+
+// ─── Initial Mock Data ──────────────────────────────────────────
+const INITIAL_CANDIDATURES: Application[] = [
+  {
+    id: 1,
+    title: "Développeur React Senior",
+    company: "TechCorp",
+    date: "22 avr. 2026",
+    status: "pending",
+    tags: ["React", "TypeScript"],
+    coverLetter:
+      "Passionné par le développement frontend, je souhaite contribuer à vos projets innovants grâce à mes 6 ans d'expérience en React et TypeScript. Mon parcours chez plusieurs scale-ups m'a permis de développer une expertise solide en architecture composant et performance.",
+  },
+  {
+    id: 2,
+    title: "Full-Stack Node.js",
+    company: "StartupFlow",
+    date: "18 avr. 2026",
+    status: "accepted",
+    tags: ["Node.js", "MongoDB"],
+    coverLetter:
+      "Fort de mon expérience en développement full-stack, je suis enthousiaste à l'idée de rejoindre StartupFlow. Votre approche agile et votre stack technique moderne correspondent parfaitement à mes compétences et à mes aspirations professionnelles.",
+  },
+  {
+    id: 3,
+    title: "Lead Frontend",
+    company: "DataViz Pro",
+    date: "15 avr. 2026",
+    status: "rejected",
+    tags: ["Vue", "D3.js"],
+    coverLetter:
+      "Avec une solide expérience en management technique et en Vue.js, je suis convaincu de pouvoir apporter une valeur ajoutée à votre équipe front-end. Ma passion pour la data-visualization et mon leadership naturel en font un fit idéal pour ce poste.",
+  },
+  {
+    id: 4,
+    title: "Ingénieur DevOps",
+    company: "CloudScale",
+    date: "10 avr. 2026",
+    status: "pending",
+    tags: ["Docker", "AWS"],
+    coverLetter:
+      "Certifié AWS Solutions Architect et passionné par l'automatisation, je souhaite mettre mes compétences en infrastructure as code et CI/CD au service de CloudScale. Mon expérience en environnements haute-disponibilité sera un atout pour vos projets cloud.",
+  },
 ];
 
-const statusMap: Record<string, { label: string; color: string; bg: string; icon: React.ComponentType<{ className?: string }> }> = {
-  pending: { label: "En attente", color: "#f59e0b", bg: "rgba(245,158,11,0.1)", icon: HiClock },
-  accepted: { label: "Acceptée", color: "#10b981", bg: "rgba(16,185,129,0.1)", icon: HiCheckCircle },
-  rejected: { label: "Refusée", color: "#ef4444", bg: "rgba(239,68,68,0.1)", icon: HiXCircle },
+// ─── Status Config ──────────────────────────────────────────────
+const statusMap: Record<
+  ApplicationStatus,
+  {
+    label: string;
+    color: string;
+    bg: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }
+> = {
+  pending: {
+    label: "En attente",
+    color: "#f59e0b",
+    bg: "rgba(245,158,11,0.1)",
+    icon: HiClock,
+  },
+  accepted: {
+    label: "Acceptée",
+    color: "#10b981",
+    bg: "rgba(16,185,129,0.1)",
+    icon: HiCheckCircle,
+  },
+  rejected: {
+    label: "Refusée",
+    color: "#ef4444",
+    bg: "rgba(239,68,68,0.1)",
+    icon: HiXCircle,
+  },
 };
 
+// ─── Detail Modal ───────────────────────────────────────────────
+function DetailModal({
+  app,
+  onClose,
+  onWithdraw,
+  onEdit,
+}: {
+  app: Application;
+  onClose: () => void;
+  onWithdraw: (id: number) => void;
+  onEdit: (id: number) => void;
+}) {
+  const st = statusMap[app.status];
+  const StatusIcon = st.icon;
+  const canModify = app.status === "pending";
+  const [confirmWithdraw, setConfirmWithdraw] = useState(false);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+        style={{ animation: "fadeIn 0.2s ease" }}
+      />
+
+      {/* Modal */}
+      <div
+        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden"
+        style={{ animation: "fadeInUp 0.3s ease" }}
+      >
+        {/* ── Header ── */}
+        <div
+          className="relative px-8 pt-8 pb-6"
+          style={{
+            background: "linear-gradient(135deg, #0a1628 0%, #111d33 100%)",
+          }}
+        >
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+          >
+            <HiXMark className="w-5 h-5" />
+          </button>
+
+          <div className="flex items-start gap-4">
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: "rgba(0,184,217,0.15)" }}
+            >
+              <HiBriefcase className="w-6 h-6 text-[#00b8d9]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-extrabold text-white truncate">
+                {app.title}
+              </h2>
+              <div className="flex items-center gap-3 mt-1.5 text-sm text-gray-400">
+                <span className="flex items-center gap-1">
+                  <HiBuildingOffice2 className="w-4 h-4" />
+                  {app.company}
+                </span>
+                <span className="flex items-center gap-1">
+                  <HiCalendarDays className="w-4 h-4" />
+                  {app.date}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Status Badge */}
+          <div className="mt-4">
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
+              style={{ backgroundColor: st.bg, color: st.color }}
+            >
+              <StatusIcon className="w-3.5 h-3.5" />
+              {st.label}
+            </span>
+          </div>
+        </div>
+
+        {/* ── Body ── */}
+        <div className="px-8 py-6 space-y-5">
+          {/* Tags */}
+          <div>
+            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+              Compétences
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {app.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="px-3 py-1 rounded-lg text-xs font-semibold bg-gray-50 text-gray-600 border border-gray-100"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Cover Letter */}
+          <div>
+            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <HiDocumentText className="w-4 h-4" />
+              Lettre de motivation
+            </h4>
+            <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+              <p className="text-sm text-gray-600 leading-relaxed">
+                {app.coverLetter}
+              </p>
+            </div>
+          </div>
+
+          {/* ── Cannot modify message ── */}
+          {!canModify && (
+            <div
+              className="flex items-start gap-3 rounded-xl px-4 py-3.5 text-sm"
+              style={{
+                backgroundColor:
+                  app.status === "accepted"
+                    ? "rgba(16,185,129,0.06)"
+                    : "rgba(239,68,68,0.06)",
+                border: `1px solid ${
+                  app.status === "accepted"
+                    ? "rgba(16,185,129,0.15)"
+                    : "rgba(239,68,68,0.15)"
+                }`,
+                color:
+                  app.status === "accepted" ? "#059669" : "#dc2626",
+              }}
+            >
+              <HiInformationCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span className="font-medium">
+                Cette candidature ne peut plus être modifiée.
+              </span>
+            </div>
+          )}
+
+          {/* ── Withdraw Confirmation ── */}
+          {confirmWithdraw && (
+            <div
+              className="flex items-start gap-3 rounded-xl px-4 py-3.5 text-sm"
+              style={{
+                backgroundColor: "rgba(245,158,11,0.06)",
+                border: "1px solid rgba(245,158,11,0.2)",
+              }}
+            >
+              <HiExclamationTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-bold text-amber-700 mb-2">
+                  Confirmer le retrait ?
+                </p>
+                <p className="text-amber-600 text-xs mb-3">
+                  Cette action est irréversible. Votre candidature sera
+                  définitivement supprimée.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => onWithdraw(app.id)}
+                    className="px-4 py-2 text-xs font-bold text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors cursor-pointer"
+                  >
+                    Oui, retirer
+                  </button>
+                  <button
+                    onClick={() => setConfirmWithdraw(false)}
+                    className="px-4 py-2 text-xs font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Actions ── */}
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => canModify && onEdit(app.id)}
+              disabled={!canModify}
+              className="flex-1 py-3 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:enabled:-translate-y-0.5"
+              style={{
+                backgroundColor: canModify ? "#00b8d9" : "#e2e8f0",
+                color: canModify ? "#fff" : "#94a3b8",
+                boxShadow: canModify
+                  ? "0 6px 16px rgba(0,184,217,0.3)"
+                  : "none",
+              }}
+            >
+              <HiPencilSquare className="w-4.5 h-4.5" />
+              Modifier la candidature
+            </button>
+            <button
+              onClick={() => canModify && setConfirmWithdraw(true)}
+              disabled={!canModify}
+              className="py-3 px-5 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:enabled:bg-red-50 hover:enabled:text-red-600 hover:enabled:border-red-200"
+              style={{
+                backgroundColor: "#fff",
+                color: canModify ? "#4b5563" : "#94a3b8",
+                border: `1px solid ${canModify ? "#e5e7eb" : "#e2e8f0"}`,
+              }}
+            >
+              <HiTrash className="w-4.5 h-4.5" />
+              Retirer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Edit Modal ─────────────────────────────────────────────────
+function EditModal({
+  app,
+  onClose,
+  onSave,
+}: {
+  app: Application;
+  onClose: () => void;
+  onSave: (id: number, coverLetter: string) => void;
+}) {
+  const [letter, setLetter] = useState(app.coverLetter);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    await new Promise((r) => setTimeout(r, 1000));
+    onSave(app.id, letter);
+    setSaving(false);
+    setSaved(true);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+        style={{ animation: "fadeIn 0.2s ease" }}
+      />
+
+      {/* Modal */}
+      <div
+        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden"
+        style={{ animation: "fadeInUp 0.3s ease" }}
+      >
+        {/* Header */}
+        <div
+          className="relative px-8 pt-8 pb-6"
+          style={{
+            background: "linear-gradient(135deg, #0a1628 0%, #111d33 100%)",
+          }}
+        >
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+          >
+            <HiXMark className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#00b8d9]/20 flex items-center justify-center">
+              <HiPencilSquare className="w-5 h-5 text-[#00b8d9]" />
+            </div>
+            <div>
+              <h2 className="text-lg font-extrabold text-white">
+                Modifier la candidature
+              </h2>
+              <p className="text-sm text-gray-400">
+                {app.title} — {app.company}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="px-8 py-6 space-y-5">
+          {saved ? (
+            <div className="text-center py-8">
+              <div
+                className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"
+                style={{ backgroundColor: "rgba(16,185,129,0.1)" }}
+              >
+                <HiCheckCircle className="w-9 h-9 text-emerald-500" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                Candidature modifiée !
+              </h3>
+              <p className="text-sm text-gray-500 mb-6">
+                Vos modifications ont été enregistrées avec succès.
+              </p>
+              <button
+                onClick={onClose}
+                className="px-6 py-3 text-sm font-bold text-white rounded-xl transition-transform hover:-translate-y-0.5 cursor-pointer"
+                style={{
+                  backgroundColor: "#00b8d9",
+                  boxShadow: "0 6px 16px rgba(0,184,217,0.3)",
+                }}
+              >
+                Fermer
+              </button>
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Lettre de motivation
+                </label>
+                <textarea
+                  value={letter}
+                  onChange={(e) => setLetter(e.target.value)}
+                  rows={6}
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700 placeholder:text-gray-400 focus:border-[#00b8d9] focus:ring-2 focus:ring-[#00b8d9]/20 outline-none transition-all resize-none"
+                />
+                <p className="text-xs text-gray-400 mt-1.5 text-right">
+                  {letter.length} caractères
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleSave}
+                  disabled={saving || letter.trim() === ""}
+                  className="flex-1 py-3.5 text-sm font-extrabold text-white rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:-translate-y-0.5"
+                  style={{
+                    backgroundColor: "#00b8d9",
+                    boxShadow: "0 8px 20px rgba(0,184,217,0.3)",
+                  }}
+                >
+                  {saving ? (
+                    <>
+                      <svg
+                        className="w-5 h-5 animate-spin"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          opacity="0.25"
+                        />
+                        <path
+                          d="M4 12a8 8 0 018-8"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      Enregistrement…
+                    </>
+                  ) : (
+                    "Enregistrer les modifications"
+                  )}
+                </button>
+                <button
+                  onClick={onClose}
+                  className="py-3.5 px-5 text-sm font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer"
+                >
+                  Annuler
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Toast Component ────────────────────────────────────────────
+function Toast({
+  message,
+  visible,
+}: {
+  message: string;
+  visible: boolean;
+}) {
+  return (
+    <div
+      className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none"
+      style={{
+        transition: "opacity 0.3s ease, transform 0.3s ease",
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(12px)",
+      }}
+    >
+      <div
+        className="flex items-center gap-2.5 px-5 py-3 rounded-xl text-sm font-bold shadow-2xl"
+        style={{
+          backgroundColor: "#0a1628",
+          color: "#fff",
+          border: "1px solid rgba(0,184,217,0.3)",
+        }}
+      >
+        <HiCheckCircle className="w-5 h-5 text-[#00b8d9]" />
+        {message}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ──────────────────────────────────────────────────
 export default function CandidaturesPage() {
+  const [candidatures, setCandidatures] =
+    useState<Application[]>(INITIAL_CANDIDATURES);
+  const [selectedApp, setSelectedApp] = useState<Application | null>(null);
+  const [editingApp, setEditingApp] = useState<Application | null>(null);
+  const [toastMsg, setToastMsg] = useState("");
+  const [toastVisible, setToastVisible] = useState(false);
+
+  // ── Dynamic counters ──
+  const stats = useMemo(
+    () => [
+      { label: "Total", count: candidatures.length, color: "#00b8d9" },
+      {
+        label: "En attente",
+        count: candidatures.filter((c) => c.status === "pending").length,
+        color: "#f59e0b",
+      },
+      {
+        label: "Acceptées",
+        count: candidatures.filter((c) => c.status === "accepted").length,
+        color: "#10b981",
+      },
+    ],
+    [candidatures]
+  );
+
+  // ── Toast helper ──
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 2500);
+  };
+
+  // ── Withdraw handler ──
+  const handleWithdraw = (id: number) => {
+    setCandidatures((prev) => prev.filter((c) => c.id !== id));
+    setSelectedApp(null);
+    showToast("Candidature retirée avec succès");
+  };
+
+  // ── Edit handler ──
+  const handleEdit = (id: number) => {
+    const app = candidatures.find((c) => c.id === id);
+    if (app) {
+      setSelectedApp(null);
+      // Small delay so close animation plays before open
+      setTimeout(() => setEditingApp(app), 150);
+    }
+  };
+
+  // ── Save edit handler ──
+  const handleSaveEdit = (id: number, newCoverLetter: string) => {
+    setCandidatures((prev) =>
+      prev.map((c) =>
+        c.id === id ? { ...c, coverLetter: newCoverLetter } : c
+      )
+    );
+    showToast("Candidature modifiée avec succès");
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
@@ -25,56 +578,121 @@ export default function CandidaturesPage() {
             <HiBriefcase className="w-6 h-6" style={{ color: "#00b8d9" }} />
             Mes Candidatures
           </h2>
-          <p className="text-sm text-gray-500 mt-1">Suivez l&apos;état de vos candidatures en temps réel.</p>
+          <p className="text-sm text-gray-500 mt-1">
+            Suivez l&apos;état de vos candidatures en temps réel.
+          </p>
         </div>
       </div>
 
-      {/* Stats */}
+      {/* ── Dynamic Stats ── */}
       <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: "Total", count: 4, color: "#00b8d9" },
-          { label: "En attente", count: 2, color: "#f59e0b" },
-          { label: "Acceptées", count: 1, color: "#10b981" },
-        ].map((s) => (
-          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm text-center">
-            <p className="text-2xl font-black" style={{ color: s.color }}>{s.count}</p>
+        {stats.map((s) => (
+          <div
+            key={s.label}
+            className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm text-center transition-transform hover:scale-[1.02] hover:shadow-md"
+          >
+            <p
+              className="text-2xl font-black transition-all"
+              style={{ color: s.color }}
+            >
+              {s.count}
+            </p>
             <p className="text-xs text-gray-500 mt-1">{s.label}</p>
           </div>
         ))}
       </div>
 
-      {/* Applications list */}
-      <div className="space-y-3">
-        {mockApplications.map((app) => {
-          const st = statusMap[app.status];
-          const StatusIcon = st.icon;
-          return (
-            <div key={app.id} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0a1628, #111d33)" }}>
-                <HiBriefcase className="w-5 h-5" style={{ color: "#00b8d9" }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-bold text-gray-800 truncate">{app.title}</h4>
-                <p className="text-xs text-gray-500">{app.company} • {app.date}</p>
-                <div className="flex gap-1.5 mt-1.5">
-                  {app.tags.map((t) => (
-                    <span key={t} className="px-2 py-0.5 rounded text-[10px] font-medium bg-gray-50 text-gray-500 border border-gray-100">{t}</span>
-                  ))}
+      {/* ── Applications List ── */}
+      {candidatures.length > 0 ? (
+        <div className="space-y-3">
+          {candidatures.map((app) => {
+            const st = statusMap[app.status];
+            const StatusIcon = st.icon;
+            return (
+              <div
+                key={app.id}
+                onClick={() => setSelectedApp(app)}
+                className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-lg hover:border-[#00b8d9]/20 transition-all cursor-pointer group flex items-center gap-4"
+              >
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #0a1628, #111d33)",
+                  }}
+                >
+                  <HiBriefcase
+                    className="w-5 h-5"
+                    style={{ color: "#00b8d9" }}
+                  />
                 </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-bold text-gray-800 truncate group-hover:text-[#00b8d9] transition-colors">
+                    {app.title}
+                  </h4>
+                  <p className="text-xs text-gray-500">
+                    {app.company} • {app.date}
+                  </p>
+                  <div className="flex gap-1.5 mt-1.5">
+                    {app.tags.map((t) => (
+                      <span
+                        key={t}
+                        className="px-2 py-0.5 rounded text-[10px] font-medium bg-gray-50 text-gray-500 border border-gray-100"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <span
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold flex-shrink-0"
+                  style={{ backgroundColor: st.bg, color: st.color }}
+                >
+                  <StatusIcon className="w-3.5 h-3.5" />
+                  {st.label}
+                </span>
+                <HiChevronRight className="w-5 h-5 text-gray-300 group-hover:text-[#00b8d9] group-hover:translate-x-0.5 transition-all flex-shrink-0" />
               </div>
-              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold flex-shrink-0" style={{ backgroundColor: st.bg, color: st.color }}>
-                <StatusIcon className="w-3.5 h-3.5" />
-                {st.label}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* ── Empty State ── */
+        <div className="text-center py-16">
+          <div className="w-16 h-16 rounded-full bg-[#00b8d9]/10 flex items-center justify-center mx-auto mb-6">
+            <HiBriefcase className="w-8 h-8 text-[#00b8d9]" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">
+            Aucune candidature
+          </h3>
+          <p className="text-sm text-gray-500 max-w-sm mx-auto">
+            Vous n&apos;avez pas encore postulé à une offre. Parcourez les
+            missions disponibles pour commencer.
+          </p>
+        </div>
+      )}
 
-      {/* Notice */}
-      <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 text-sm text-amber-700">
-        <strong>En construction</strong> — Le système de candidature avec suivi en temps réel sera connecté à la base de données prochainement.
-      </div>
+      {/* ── Detail Modal ── */}
+      {selectedApp && (
+        <DetailModal
+          app={selectedApp}
+          onClose={() => setSelectedApp(null)}
+          onWithdraw={handleWithdraw}
+          onEdit={handleEdit}
+        />
+      )}
+
+      {/* ── Edit Modal ── */}
+      {editingApp && (
+        <EditModal
+          app={editingApp}
+          onClose={() => setEditingApp(null)}
+          onSave={handleSaveEdit}
+        />
+      )}
+
+      {/* ── Toast ── */}
+      <Toast message={toastMsg} visible={toastVisible} />
     </div>
   );
 }
