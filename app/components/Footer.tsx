@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { HiEnvelope } from "react-icons/hi2";
+import { HiEnvelope, HiCheckCircle } from "react-icons/hi2";
 import { FaLinkedin, FaTwitter, FaGithub } from "react-icons/fa";
 
 const footerLinks: Record<string, { label: string; href: string }[]> = {
@@ -37,47 +38,90 @@ const socials = [
   { icon: FaGithub, href: "https://github.com", label: "GitHub" },
 ];
 
-export default function Footer() {
+export default function Footer({
+  onNewsletterSubmit,
+}: {
+  onNewsletterSubmit?: (email: string) => void;
+} = {}) {
+  const [nlEmail, setNlEmail] = useState("");
+  const [nlSuccess, setNlSuccess] = useState(false);
+  const [toastVisible, setToastVisible] = useState(false);
+
+  const handleNewsletterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nlEmail.trim()) return;
+
+    const submitted = nlEmail;
+    setNlEmail("");
+    setNlSuccess(true);
+    setTimeout(() => setNlSuccess(false), 3000);
+
+    if (onNewsletterSubmit) {
+      onNewsletterSubmit(submitted);
+    } else {
+      // Built-in toast when no parent handler
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 2800);
+    }
+  };
+
   return (
-    <footer style={{ backgroundColor: "#0a1628", color: "#ffffff" }}>
-      {/* Newsletter */}
-      <div className="border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div>
-              <h3 className="text-lg font-bold">Restez informé</h3>
-              <p className="text-sm text-gray-400 mt-1">
-                Recevez les meilleures offres tech chaque semaine.
-              </p>
-            </div>
-            <div className="flex w-full sm:w-auto gap-2">
-              <div
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl flex-1 sm:w-72"
-                style={{
-                  backgroundColor: "rgba(255,255,255,0.05)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                }}
-              >
-                <HiEnvelope className="w-4 h-4 text-gray-400" />
-                <input
-                  type="email"
-                  placeholder="votre@email.com"
-                  className="bg-transparent text-sm text-white placeholder-gray-500 outline-none w-full"
-                />
+    <>
+      <footer style={{ backgroundColor: "#0a1628", color: "#ffffff" }}>
+        {/* Newsletter */}
+        <div className="border-b border-white/5">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+              <div>
+                <h3 className="text-lg font-bold">Restez informé</h3>
+                <p className="text-sm text-gray-400 mt-1">
+                  Recevez les meilleures offres tech chaque semaine.
+                </p>
               </div>
-              <button
-                className="px-6 py-2.5 text-white text-sm font-semibold rounded-xl transition-all cursor-pointer"
-                style={{
-                  backgroundColor: "#00b8d9",
-                  boxShadow: "0 4px 14px rgba(0, 184, 217, 0.25)",
-                }}
+              <form
+                onSubmit={handleNewsletterSubmit}
+                className="flex w-full sm:w-auto gap-2"
               >
-                S&apos;abonner
-              </button>
+                <div
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl flex-1 sm:w-72"
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                  }}
+                >
+                  <HiEnvelope className="w-4 h-4 text-gray-400" />
+                  <input
+                    type="email"
+                    value={nlEmail}
+                    onChange={(e) => setNlEmail(e.target.value)}
+                    placeholder="votre@email.com"
+                    required
+                    className="bg-transparent text-sm text-white placeholder-gray-500 outline-none w-full"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 text-white text-sm font-semibold rounded-xl transition-all cursor-pointer flex items-center gap-2"
+                  style={{
+                    backgroundColor: nlSuccess ? "#10b981" : "#00b8d9",
+                    boxShadow: nlSuccess
+                      ? "0 4px 14px rgba(16, 185, 129, 0.25)"
+                      : "0 4px 14px rgba(0, 184, 217, 0.25)",
+                  }}
+                >
+                  {nlSuccess ? (
+                    <>
+                      <HiCheckCircle className="w-4 h-4" />
+                      Abonné !
+                    </>
+                  ) : (
+                    "S'abonner"
+                  )}
+                </button>
+              </form>
             </div>
           </div>
         </div>
-      </div>
 
       {/* Links */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -150,6 +194,31 @@ export default function Footer() {
           </div>
         </div>
       </div>
-    </footer>
+      </footer>
+
+      {/* Built-in toast for standalone footer newsletter */}
+      {!onNewsletterSubmit && (
+        <div
+          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none"
+          style={{
+            transition: "opacity 0.3s ease, transform 0.3s ease",
+            opacity: toastVisible ? 1 : 0,
+            transform: toastVisible ? "translateY(0)" : "translateY(12px)",
+          }}
+        >
+          <div
+            className="flex items-center gap-2.5 px-5 py-3 rounded-xl text-sm font-bold shadow-2xl"
+            style={{
+              backgroundColor: "#0a1628",
+              color: "#fff",
+              border: "1px solid rgba(0,184,217,0.3)",
+            }}
+          >
+            <HiCheckCircle className="w-5 h-5 text-[#00b8d9]" />
+            Abonnement réussi !
+          </div>
+        </div>
+      )}
+    </>
   );
 }
