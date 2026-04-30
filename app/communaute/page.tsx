@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useRef } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import {
@@ -13,10 +13,12 @@ import {
   HiCalendarDays,
   HiMapPin,
   HiSignal,
-  HiUserCircle,
   HiArrowTopRightOnSquare,
   HiEnvelope,
   HiSparkles,
+  HiMagnifyingGlass,
+  HiXMark,
+  HiFunnelSolid,
 } from "react-icons/hi2";
 
 // ─── Mock Data ──────────────────────────────────────────────────
@@ -161,6 +163,26 @@ function Toast({
   );
 }
 
+// ─── Empty State ────────────────────────────────────────────────
+function EmptyState({ query, section }: { query: string; section: string }) {
+  return (
+    <div className="text-center py-12">
+      <div
+        className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+        style={{ backgroundColor: "rgba(0,184,217,0.08)" }}
+      >
+        <HiMagnifyingGlass className="w-7 h-7 text-[#00b8d9]" />
+      </div>
+      <p className="text-sm font-bold text-gray-700 mb-1">
+        Aucun résultat dans {section}
+      </p>
+      <p className="text-xs text-gray-400">
+        Aucun élément ne correspond à &quot;<span className="font-semibold text-[#00b8d9]">{query}</span>&quot;
+      </p>
+    </div>
+  );
+}
+
 // ─── Category Cards ─────────────────────────────────────────────
 const CATEGORIES = [
   {
@@ -188,8 +210,10 @@ export default function CommunautePage() {
   const [toastMsg, setToastMsg] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
   const [email, setEmail] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [registeredEvents, setRegisteredEvents] = useState<number[]>([]);
   const [contactedMentors, setContactedMentors] = useState<number[]>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -215,6 +239,58 @@ export default function CommunautePage() {
     setEmail("");
     showToast("Abonnement réussi !");
   };
+
+  // ── Tag click → populate search ──
+  const handleTagClick = (tag: string) => {
+    setSearchQuery(tag);
+    searchInputRef.current?.focus();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // ── Filtering logic ──
+  const q = searchQuery.trim().toLowerCase();
+
+  const filteredForum = useMemo(
+    () =>
+      q === ""
+        ? FORUM_TOPICS
+        : FORUM_TOPICS.filter(
+            (t) =>
+              t.title.toLowerCase().includes(q) ||
+              t.tags.some((tag) => tag.toLowerCase().includes(q)) ||
+              t.author.toLowerCase().includes(q)
+          ),
+    [q]
+  );
+
+  const filteredEvents = useMemo(
+    () =>
+      q === ""
+        ? EVENTS
+        : EVENTS.filter(
+            (e) =>
+              e.title.toLowerCase().includes(q) ||
+              e.description.toLowerCase().includes(q) ||
+              e.type.toLowerCase().includes(q) ||
+              e.location.toLowerCase().includes(q)
+          ),
+    [q]
+  );
+
+  const filteredMentors = useMemo(
+    () =>
+      q === ""
+        ? MENTORS
+        : MENTORS.filter(
+            (m) =>
+              m.name.toLowerCase().includes(q) ||
+              m.tags.some((tag) => tag.toLowerCase().includes(q)) ||
+              m.role.toLowerCase().includes(q)
+          ),
+    [q]
+  );
+
+  const totalResults = filteredForum.length + filteredEvents.length + filteredMentors.length;
 
   return (
     <>
@@ -246,10 +322,50 @@ export default function CommunautePage() {
               La Communauté{" "}
               <span style={{ color: "#00b8d9" }}>FreelanceIT</span>
             </h1>
-            <p className="text-gray-400 max-w-xl mx-auto text-base sm:text-lg mb-12 leading-relaxed">
+            <p className="text-gray-400 max-w-xl mx-auto text-base sm:text-lg mb-10 leading-relaxed">
               Rejoignez des milliers de freelances et recruteurs IT pour
               échanger, partager et grandir ensemble.
             </p>
+
+            {/* ── Search Bar ── */}
+            <div className="max-w-xl mx-auto mb-12">
+              <div
+                className="flex items-center gap-3 px-5 py-3.5 rounded-2xl transition-all"
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.07)",
+                  border: searchQuery
+                    ? "1px solid rgba(0,184,217,0.4)"
+                    : "1px solid rgba(255,255,255,0.1)",
+                  boxShadow: searchQuery
+                    ? "0 0 20px rgba(0,184,217,0.1)"
+                    : "none",
+                }}
+              >
+                <HiMagnifyingGlass className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Rechercher : React, DevOps, TJM, Meetup…"
+                  className="bg-transparent text-sm text-white placeholder-gray-500 outline-none w-full"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer flex-shrink-0"
+                  >
+                    <HiXMark className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              {q && (
+                <p className="text-xs text-gray-500 mt-2.5">
+                  <span className="font-bold text-[#00b8d9]">{totalResults}</span>{" "}
+                  résultat{totalResults !== 1 ? "s" : ""} pour &quot;{searchQuery}&quot;
+                </p>
+              )}
+            </div>
 
             {/* ── Category Cards ── */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 max-w-3xl mx-auto">
@@ -293,66 +409,63 @@ export default function CommunautePage() {
               </div>
             </div>
 
-            <div className="space-y-3">
-              {FORUM_TOPICS.map((topic) => (
-                <div
-                  key={topic.id}
-                  className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-lg hover:border-[#00b8d9]/20 transition-all cursor-pointer group flex items-start sm:items-center gap-4 flex-col sm:flex-row"
-                >
-                  {/* Avatar */}
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0a1628] to-[#111d33] flex items-center justify-center text-xs font-bold text-[#00b8d9] flex-shrink-0">
-                    {topic.author
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      {topic.hot && (
-                        <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">
-                          🔥 Populaire
-                        </span>
-                      )}
+            {filteredForum.length > 0 ? (
+              <div className="space-y-3">
+                {filteredForum.map((topic) => (
+                  <div
+                    key={topic.id}
+                    className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-lg hover:border-[#00b8d9]/20 transition-all cursor-pointer group flex items-start sm:items-center gap-4 flex-col sm:flex-row"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0a1628] to-[#111d33] flex items-center justify-center text-xs font-bold text-[#00b8d9] flex-shrink-0">
+                      {topic.author.split(" ").map((n) => n[0]).join("")}
                     </div>
-                    <h4 className="text-sm font-bold text-gray-800 group-hover:text-[#00b8d9] transition-colors truncate">
-                      {topic.title}
-                    </h4>
-                    <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
-                      <span>{topic.author}</span>
-                      <span>•</span>
-                      <span>{topic.time}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        {topic.hot && (
+                          <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">
+                            🔥 Populaire
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="text-sm font-bold text-gray-800 group-hover:text-[#00b8d9] transition-colors truncate">
+                        {topic.title}
+                      </h4>
+                      <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                        <span>{topic.author}</span>
+                        <span>•</span>
+                        <span>{topic.time}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 flex-shrink-0">
+                      {topic.tags.map((tag) => (
+                        <button
+                          key={tag}
+                          onClick={(e) => { e.stopPropagation(); handleTagClick(tag); }}
+                          className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-50 text-gray-500 border border-gray-100 hover:border-[#00b8d9]/30 hover:text-[#00b8d9] hover:bg-[#00b8d9]/5 transition-colors cursor-pointer"
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-sm font-bold text-gray-400 flex-shrink-0">
+                      <HiChatBubbleLeftRight className="w-4 h-4" />
+                      <span>{topic.replies}</span>
                     </div>
                   </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState query={searchQuery} section="les discussions" />
+            )}
 
-                  {/* Tags */}
-                  <div className="flex flex-wrap gap-1.5 flex-shrink-0">
-                    {topic.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-50 text-gray-500 border border-gray-100 hover:border-[#00b8d9]/30 hover:text-[#00b8d9] hover:bg-[#00b8d9]/5 transition-colors cursor-pointer"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* Replies */}
-                  <div className="flex items-center gap-1.5 text-sm font-bold text-gray-400 flex-shrink-0">
-                    <HiChatBubbleLeftRight className="w-4 h-4" />
-                    <span>{topic.replies}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="text-center mt-6">
-              <button className="inline-flex items-center gap-2 text-sm font-bold text-[#00b8d9] hover:underline cursor-pointer">
-                Voir toutes les discussions
-                <HiArrowTopRightOnSquare className="w-4 h-4" />
-              </button>
-            </div>
+            {filteredForum.length > 0 && !q && (
+              <div className="text-center mt-6">
+                <button className="inline-flex items-center gap-2 text-sm font-bold text-[#00b8d9] hover:underline cursor-pointer">
+                  Voir toutes les discussions
+                  <HiArrowTopRightOnSquare className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
         </section>
 
@@ -381,8 +494,9 @@ export default function CommunautePage() {
               </div>
             </div>
 
+            {filteredEvents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {EVENTS.map((event) => {
+              {filteredEvents.map((event) => {
                 const isRegistered = registeredEvents.includes(event.id);
                 return (
                   <div
@@ -483,6 +597,9 @@ export default function CommunautePage() {
                 );
               })}
             </div>
+            ) : (
+              <EmptyState query={searchQuery} section="les événements" />
+            )}
           </div>
         </section>
 
@@ -511,15 +628,15 @@ export default function CommunautePage() {
               </div>
             </div>
 
+            {filteredMentors.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {MENTORS.map((mentor) => {
+              {filteredMentors.map((mentor) => {
                 const isContacted = contactedMentors.includes(mentor.id);
                 return (
                   <div
                     key={mentor.id}
                     className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-xl hover:border-emerald-100 transition-all group text-center"
                   >
-                    {/* Avatar */}
                     <div
                       className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-xl font-black text-white group-hover:scale-105 transition-transform"
                       style={{ backgroundColor: mentor.color }}
@@ -532,7 +649,6 @@ export default function CommunautePage() {
                     </h3>
                     <p className="text-xs text-gray-500 mb-3">{mentor.role}</p>
 
-                    {/* Stats */}
                     <div className="flex items-center justify-center gap-4 text-xs text-gray-400 mb-4">
                       <span className="flex items-center gap-1">
                         ⭐ <span className="font-bold text-gray-700">{mentor.rating}</span>
@@ -542,15 +658,15 @@ export default function CommunautePage() {
                       </span>
                     </div>
 
-                    {/* Tags */}
                     <div className="flex flex-wrap justify-center gap-1.5 mb-5">
                       {mentor.tags.map((tag) => (
-                        <span
+                        <button
                           key={tag}
-                          className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-50 text-gray-500 border border-gray-100"
+                          onClick={() => handleTagClick(tag)}
+                          className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-50 text-gray-500 border border-gray-100 hover:border-[#00b8d9]/30 hover:text-[#00b8d9] hover:bg-[#00b8d9]/5 transition-colors cursor-pointer"
                         >
                           {tag}
-                        </span>
+                        </button>
                       ))}
                     </div>
 
@@ -584,6 +700,9 @@ export default function CommunautePage() {
                 );
               })}
             </div>
+            ) : (
+              <EmptyState query={searchQuery} section="les mentors" />
+            )}
           </div>
         </section>
 
