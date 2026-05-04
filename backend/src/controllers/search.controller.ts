@@ -31,7 +31,10 @@ export async function searchCandidates(req: Request, res: Response): Promise<voi
     if (skills && typeof skills === "string") {
       const skillList = skills.split(",").map((s) => s.trim()).filter(Boolean);
       if (skillList.length > 0) {
-        where.skills = { hasEvery: skillList };
+        // skills is stored as a JSON string, use AND contains for each skill
+        where.AND = skillList.map((skill) => ({
+          skills: { contains: skill, mode: "insensitive" as const },
+        }));
       }
     }
 
@@ -137,7 +140,7 @@ export async function searchCandidates(req: Request, res: Response): Promise<voi
 
 export async function getCandidateDetail(req: Request, res: Response): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const candidate = await prisma.profileCandidat.findUnique({
       where: { id },

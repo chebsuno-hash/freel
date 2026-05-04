@@ -3,6 +3,12 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+// Helper: parse JSON-encoded string[] fields from DB
+function parseJsonArray(val: string | string[]): string[] {
+  if (Array.isArray(val)) return val;
+  try { return JSON.parse(val); } catch { return []; }
+}
+
 // ─── Matching Algorithm ───────────────────────
 
 interface MatchScore {
@@ -49,7 +55,7 @@ function calculateMatchScore(
 
 export async function matchCandidatesForJob(req: Request, res: Response): Promise<void> {
   try {
-    const { jobId } = req.params;
+    const jobId = req.params.jobId as string;
 
     // Get the job offer
     const job = await prisma.jobOffer.findUnique({ where: { id: jobId } });
@@ -68,18 +74,20 @@ export async function matchCandidatesForJob(req: Request, res: Response): Promis
     });
 
     // Calculate scores
+    const jobTags = parseJsonArray(job.tags);
     const scored: MatchScore[] = candidates.map((c) => {
-      const normalizedRequired = job.tags.map((t) => t.toLowerCase());
-      const normalizedCandidate = c.skills.map((s) => s.toLowerCase());
-      const matched = job.tags.filter((t) => normalizedCandidate.includes(t.toLowerCase()));
-      const missing = job.tags.filter((t) => !normalizedCandidate.includes(t.toLowerCase()));
+      const candidateSkills = parseJsonArray(c.skills);
+      const normalizedCandidate = candidateSkills.map((s) => s.toLowerCase());
+      const matched = jobTags.filter((t) => normalizedCandidate.includes(t.toLowerCase()));
+      const missing = jobTags.filter((t) => !normalizedCandidate.includes(t.toLowerCase()));
 
       return {
         ...c,
+        skills: candidateSkills,
         candidateId: c.id,
         matchedSkills: matched,
         missingSkills: missing,
-        score: calculateMatchScore(c.skills, job.tags, c.yearsOfExperience, c.availability),
+        score: calculateMatchScore(candidateSkills, jobTags, c.yearsOfExperience, c.availability),
       };
     });
 
@@ -89,7 +97,7 @@ export async function matchCandidatesForJob(req: Request, res: Response): Promis
     res.json({
       success: true,
       data: {
-        job: { id: job.id, title: job.title, company: job.company, tags: job.tags },
+        job: { id: job.id, title: job.title, company: job.company, tags: jobTags },
         matches: results,
         totalCandidates: candidates.length,
         matchedCandidates: results.length,
@@ -120,12 +128,13 @@ export async function quickMatch(req: Request, res: Response): Promise<void> {
     });
 
     const scored = candidates.map((c) => {
-      const matched = skills.filter((s: string) => c.skills.map((cs) => cs.toLowerCase()).includes(s.toLowerCase()));
-      const missing = skills.filter((s: string) => !c.skills.map((cs) => cs.toLowerCase()).includes(s.toLowerCase()));
+      const candidateSkills = parseJsonArray(c.skills);
+      const matched = skills.filter((s: string) => candidateSkills.map((cs: string) => cs.toLowerCase()).includes(s.toLowerCase()));
+      const missing = skills.filter((s: string) => !candidateSkills.map((cs: string) => cs.toLowerCase()).includes(s.toLowerCase()));
 
       return {
-        ...c, candidateId: c.id, matchedSkills: matched, missingSkills: missing,
-        score: calculateMatchScore(c.skills, skills, c.yearsOfExperience, c.availability),
+        ...c, skills: candidateSkills, candidateId: c.id, matchedSkills: matched, missingSkills: missing,
+        score: calculateMatchScore(candidateSkills, skills, c.yearsOfExperience, c.availability),
       };
     });
 

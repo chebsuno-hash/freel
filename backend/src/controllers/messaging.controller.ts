@@ -53,7 +53,7 @@ export async function sendMessage(req: Request, res: Response): Promise<void> {
         type: "MESSAGE_RECEIVED",
         title: "Nouveau message",
         message: `${senderName} vous a envoyé un message : "${subject}"`,
-        metadata: { senderId, messageId: message.id },
+        metadata: JSON.stringify({ senderId, messageId: message.id }),
       },
     });
 
@@ -123,7 +123,7 @@ export async function saveCandidate(req: Request, res: Response): Promise<void> 
           type: "PROFILE_SAVED",
           title: "Profil sauvegardé",
           message: `${recruiterName} a sauvegardé votre profil.`,
-          metadata: { recruiterId },
+           metadata: JSON.stringify({ recruiterId }),
         },
       });
     }

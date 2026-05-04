@@ -1,0 +1,59 @@
+# ============================================
+# FreelanceIT — Render Infrastructure as Code
+# ============================================
+# Docs: https://docs.render.com/blueprint-spec
+
+services:
+  # ─── Backend API ───────────────────────────
+  - type: web
+    name: freel-backend
+    runtime: node
+    region: frankfurt  # eu-central — closest to Supabase eu-central-1
+
+    # Monorepo: backend lives in a subdirectory
+    rootDir: backend
+
+    # Build & Start
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+
+    # Plan (free tier for dev, upgrade for production)
+    plan: free
+
+    # Auto-deploy on push to main
+    branch: main
+
+    # Health check
+    healthCheckPath: /api/health
+
+    # Environment variables (set actual values in Render Dashboard)
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      - key: PORT
+        value: "10000"  # Render assigns port 10000 by default
+
+      - key: DATABASE_URL
+        sync: false  # Set in Render Dashboard (contains secrets)
+
+      - key: DIRECT_URL
+        sync: false
+
+      - key: SUPABASE_URL
+        sync: false
+
+      - key: SUPABASE_ANON_KEY
+        sync: false
+
+      - key: JWT_SECRET
+        generateValue: true  # Render auto-generates a secure random string
+
+      - key: JWT_EXPIRES_IN
+        value: "7d"
+
+      - key: FRONTEND_URL
+        sync: false  # Set to your Vercel deployment URL
+
+      - key: GOOGLE_CLIENT_ID
+        sync: false

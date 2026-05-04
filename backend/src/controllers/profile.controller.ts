@@ -139,9 +139,14 @@ export async function updateMyProfile(
         return;
       }
 
+      const data: Record<string, unknown> = { ...validation.data };
+      if (data.skills && Array.isArray(data.skills)) {
+        data.skills = JSON.stringify(data.skills);
+      }
+
       const updatedProfile = await prisma.profileCandidat.update({
         where: { userId },
-        data: validation.data,
+        data: data as any,
       });
 
       res.json({
@@ -187,7 +192,7 @@ export async function getPublicProfile(
   res: Response
 ): Promise<void> {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const user = await prisma.user.findUnique({
       where: { id },
@@ -234,8 +239,8 @@ export async function getPublicProfile(
 
     const profile =
       user.role === "CANDIDAT"
-        ? user.profileCandidat
-        : user.profileRecruteur;
+        ? (user as any).profileCandidat
+        : (user as any).profileRecruteur;
 
     res.json({
       success: true,
