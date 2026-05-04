@@ -18,7 +18,6 @@ import {
   HiSparkles,
   HiMagnifyingGlass,
   HiXMark,
-  HiFunnelSolid,
 } from "react-icons/hi2";
 
 // ─── Mock Data ──────────────────────────────────────────────────
