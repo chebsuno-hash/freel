@@ -24,7 +24,7 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: (origin, callback) => {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
       // Allow requests with no origin (mobile apps, curl, server-to-server)
       if (!origin) return callback(null, true);
       // Allow configured origins
@@ -49,7 +49,7 @@ app.use(express.urlencoded({ extended: true }));
 // ─── Routes ───────────────────────────────────
 
 // Health check
-app.get("/api/health", (_req, res) => {
+app.get("/api/health", (_req: express.Request, res: express.Response) => {
   res.json({
     success: true,
     message: "FreelanceIT API is running 🚀",
@@ -81,7 +81,7 @@ app.use("/api/jobs", jobsRoutes);
 
 // ─── 404 Handler ──────────────────────────────
 
-app.use((_req, res) => {
+app.use((_req: express.Request, res: express.Response) => {
   res.status(404).json({
     success: false,
     message: "Route non trouvée.",
