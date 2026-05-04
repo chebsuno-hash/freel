@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth } from "../lib/AuthContext";
 import {
   HiXMark,
   HiBriefcase,
@@ -36,6 +37,7 @@ export default function CreateOfferModal({
   onClose,
   onSuccess,
 }: CreateOfferModalProps) {
+  const { token, user } = useAuth();
   const [form, setForm] = useState({
     title: "",
     category: "",
@@ -46,24 +48,68 @@ export default function CreateOfferModal({
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
   const update = (key: string, value: string) =>
     setForm((p) => ({ ...p, [key]: value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
+    // Guard: must be authenticated
+    if (!token || !user) {
+      setError("Vous devez être connecté pour publier une offre.");
+      return;
+    }
+
     setLoading(true);
 
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 1500));
+    try {
+      const res = await fetch(`${API_BASE}/jobs`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: form.title,
+          description: form.description,
+          location: form.location,
+          contractType: form.contractType.toUpperCase(),
+          tjm: form.salary ? parseInt(form.salary) || null : null,
+          tags: form.category ? [form.category] : [],
+          company: "Mon entreprise",
+        }),
+      });
 
-    setLoading(false);
-    setSuccess(true);
+      const json = await res.json();
 
-    setTimeout(() => {
-      handleClose();
-      onSuccess?.();
-    }, 2000);
+      if (!res.ok || !json.success) {
+        if (res.status === 401) {
+          setError("Session expirée. Veuillez vous reconnecter.");
+        } else if (res.status === 403) {
+          setError("Seuls les recruteurs peuvent publier des offres.");
+        } else {
+          setError(json.message || "Erreur lors de la publication.");
+        }
+        setLoading(false);
+        return;
+      }
+
+      setLoading(false);
+      setSuccess(true);
+
+      setTimeout(() => {
+        handleClose();
+        onSuccess?.();
+      }, 2000);
+    } catch {
+      setError("Impossible de contacter le serveur.");
+      setLoading(false);
+    }
   };
 
   const handleClose = () => {
@@ -77,6 +123,7 @@ export default function CreateOfferModal({
     });
     setSuccess(false);
     setLoading(false);
+    setError(null);
     onClose();
   };
 
@@ -281,6 +328,21 @@ export default function CreateOfferModal({
                 {form.description.length} / 2000 caractères
               </p>
             </div>
+
+            {/* Error message */}
+            {error && (
+              <div
+                className="flex items-start gap-2 px-4 py-3 rounded-xl text-sm"
+                style={{
+                  backgroundColor: "rgba(239,68,68,0.06)",
+                  border: "1px solid rgba(239,68,68,0.15)",
+                  color: "#dc2626",
+                }}
+              >
+                <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                {error}
+              </div>
+            )}
 
             {/* Submit */}
             <button

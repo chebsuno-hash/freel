@@ -220,7 +220,7 @@ export default function Navbar() {
                     Se connecter
                   </button>
                   <button
-                    onClick={() => setShowCreateOffer(true)}
+                    onClick={() => setShowLogin(true)}
                     className="px-5 py-2.5 text-xs font-extrabold text-white rounded-full transition-all hover:-translate-y-0.5 ml-2 uppercase tracking-wide cursor-pointer"
                     style={{ backgroundColor: "#0a1628" }}
                   >
@@ -271,7 +271,7 @@ export default function Navbar() {
             <div className="pt-4 flex flex-col gap-2">
                {!user && (
                  <>
-                   <button onClick={() => { setMobileOpen(false); setShowCreateOffer(true); }} className="w-full py-3 text-xs font-extrabold text-white rounded-full bg-[#0a1628] uppercase cursor-pointer">Déposer une offre</button>
+                   <button onClick={() => { setMobileOpen(false); setShowLogin(true); }} className="w-full py-3 text-xs font-extrabold text-white rounded-full bg-[#0a1628] uppercase cursor-pointer">Déposer une offre</button>
                    <button onClick={() => { setMobileOpen(false); setShowUploadCV(true); }} className="w-full py-3 text-xs font-extrabold text-white rounded-full bg-[#00b8d9] uppercase cursor-pointer">Déposer un CV</button>
                  </>
                )}
