@@ -18,7 +18,7 @@ router.post(
   authMiddleware,
   requireRole("CANDIDAT"),
   (req: Request, res: Response, next: NextFunction) => {
-    uploadMiddleware(req, res, (err) => {
+    uploadMiddleware(req, res, (err: any) => {
       if (err) {
         res.status(400).json({
           success: false,
@@ -53,7 +53,7 @@ router.post(
 router.post(
   "/parse",
   (req: Request, res: Response, next: NextFunction) => {
-    uploadMiddleware(req, res, (err) => {
+    uploadMiddleware(req, res, (err: any) => {
       if (err) {
         res.status(400).json({
           success: false,
