@@ -59,7 +59,8 @@ export default function OffresPublicPage() {
       if (contractType) params.set("contractType", contractType);
       if (remoteOnly) params.set("remote", "true");
 
-      const res = await fetch(`http://localhost:5000/api/jobs?${params.toString()}`);
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+      const res = await fetch(`${API_BASE}/jobs?${params.toString()}`);
       const json = await res.json();
 
       if (json.success && json.data?.jobs) {

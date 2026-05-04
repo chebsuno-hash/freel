@@ -10,6 +10,8 @@ import {
   HiArrowPath,
 } from "react-icons/hi2";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -29,7 +31,7 @@ function VerifyEmailContent() {
     const verify = async () => {
       try {
         const res = await fetch(
-          `http://localhost:5000/api/auth/verify-email?token=${token}`
+          `${API_BASE}/auth/verify-email?token=${token}`
         );
         const json = await res.json();
 

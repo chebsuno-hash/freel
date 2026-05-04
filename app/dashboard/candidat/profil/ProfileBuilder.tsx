@@ -30,6 +30,8 @@ const emptyForm: FormData = {
   availability: "DISPONIBLE", tjm: 0, location: "", linkedIn: "", portfolioUrl: "",
 };
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
 export default function ProfileBuilder() {
   const [step, setStep] = useState(0);
   const [done, setDone] = useState<Set<number>>(new Set());
@@ -52,7 +54,7 @@ export default function ProfileBuilder() {
   const handlePublish = async () => {
     setPublishing(true);
     try {
-      const res = await fetch("http://localhost:5000/api/profiles", {
+      const res = await fetch(`${API_BASE}/profiles`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -167,7 +169,7 @@ function StepCV({ onParsed, onSkip }: { onParsed: (d: Partial<FormData>) => void
         setProgress((p) => Math.min(p + 15, 85));
       }, 300);
 
-      const res = await fetch("http://localhost:5000/api/cv/parse", {
+      const res = await fetch(`${API_BASE}/cv/parse`, {
         method: "POST",
         body: formData,
       });
