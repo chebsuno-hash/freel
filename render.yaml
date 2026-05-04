@@ -21,7 +21,7 @@ services:
     plan: free
 
     # Auto-deploy on push to main
-    branch: main
+    branch: master
 
     # Health check
     healthCheckPath: /api/health
