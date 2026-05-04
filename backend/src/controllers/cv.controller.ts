@@ -2,25 +2,17 @@ import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import multer from "multer";
 import path from "path";
-import fs from "fs";
-import pdf from "pdf-parse";
+import pdfParse from "pdf-parse";
+import { supabase } from "../utils/supabase";
+
+// pdf-parse CJS/ESM compat
+const pdf = (pdfParse as any).default ?? pdfParse;
 
 const prisma = new PrismaClient();
 
-// ─── Multer Config ────────────────────────────
+// ─── Multer Config (memory storage for cloud uploads) ─
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    const dir = path.resolve(__dirname, "../../uploads");
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (_req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, `cv-${uniqueSuffix}${ext}`);
-  },
-});
+const storage = multer.memoryStorage();
 
 const fileFilter = (
   _req: Request,
@@ -44,6 +36,38 @@ export const uploadMiddleware = multer({
   fileFilter,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
 }).single("cv");
+
+// ─── Supabase Storage Bucket ──────────────────
+
+const BUCKET = "resumes";
+
+async function uploadToSupabase(
+  buffer: Buffer,
+  originalName: string,
+  mimetype: string
+): Promise<string> {
+  const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+  const ext = path.extname(originalName);
+  const fileName = `cv-${uniqueSuffix}${ext}`;
+
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .upload(fileName, buffer, {
+      contentType: mimetype,
+      upsert: false,
+    });
+
+  if (error) {
+    throw new Error(`Supabase upload failed: ${error.message}`);
+  }
+
+  // Return the public URL
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(BUCKET).getPublicUrl(data.path);
+
+  return publicUrl;
+}
 
 // ─── Skills Database (for matching) ───────────
 
@@ -241,17 +265,16 @@ function extractLinkedIn(text: string): string {
   return match ? match[0] : "";
 }
 
-async function parseCV(filePath: string): Promise<ParsedCV> {
-  const ext = path.extname(filePath).toLowerCase();
+async function parseCVFromBuffer(buffer: Buffer, originalName: string): Promise<ParsedCV> {
+  const ext = path.extname(originalName).toLowerCase();
   let rawText = "";
 
   if (ext === ".pdf") {
-    const dataBuffer = fs.readFileSync(filePath);
-    const pdfData = await pdf(dataBuffer);
+    const pdfData = await pdf(buffer);
     rawText = pdfData.text;
   } else {
     // For Word docs, extract basic text (simplified)
-    rawText = fs.readFileSync(filePath, "utf-8");
+    rawText = buffer.toString("utf-8");
   }
 
   const skills = extractSkills(rawText);
@@ -286,10 +309,21 @@ export async function uploadAndParseCV(
       return;
     }
 
-    const filePath = req.file.path;
+    const fileBuffer = req.file.buffer;
+    const originalName = req.file.originalname;
+    const mimetype = req.file.mimetype;
 
-    // Parse the CV
-    const parsed = await parseCV(filePath);
+    // Upload to Supabase Storage
+    let publicUrl: string | null = null;
+    try {
+      publicUrl = await uploadToSupabase(fileBuffer, originalName, mimetype);
+      console.log("[CV] Uploaded to Supabase Storage:", publicUrl);
+    } catch (uploadErr) {
+      console.error("[CV] Supabase upload error (continuing with parse):", uploadErr);
+    }
+
+    // Parse the CV from the in-memory buffer
+    const parsed = await parseCVFromBuffer(fileBuffer, originalName);
 
     res.json({
       success: true,
@@ -310,6 +344,7 @@ export async function uploadAndParseCV(
           originalName: req.file.originalname,
           size: req.file.size,
           mimetype: req.file.mimetype,
+          url: publicUrl,
         },
       },
     });

@@ -15,10 +15,25 @@ const app = express();
 
 // ─── Middleware ────────────────────────────────
 
-// CORS — allow frontend to make requests
+// CORS — dynamic whitelist for cloud deployment
+const allowedOrigins = [
+  env.FRONTEND_URL,
+  "http://localhost:3000",
+  "http://localhost:3001",
+];
+
 app.use(
   cors({
-    origin: env.FRONTEND_URL,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      // Allow configured origins
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      // Allow any Vercel preview/production domain
+      if (/\.vercel\.app$/.test(origin)) return callback(null, true);
+      // Block everything else
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],

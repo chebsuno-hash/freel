@@ -8,6 +8,8 @@ import Link from "next/link";
 import { useAuth } from "../lib/AuthContext";
 import LoginModal from "./LoginModal";
 import RegisterModal from "./RegisterModal";
+import CreateOfferModal from "./CreateOfferModal";
+import UploadCVModal from "./UploadCVModal";
 
 const navLinks = [
   { label: "Missions", href: "/offres" },
@@ -20,6 +22,8 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+  const [showCreateOffer, setShowCreateOffer] = useState(false);
+  const [showUploadCV, setShowUploadCV] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -216,15 +220,15 @@ export default function Navbar() {
                     Se connecter
                   </button>
                   <button
-                    onClick={() => setShowRegister(true)}
-                    className="px-5 py-2.5 text-xs font-extrabold text-white rounded-full transition-all hover:-translate-y-0.5 ml-2 uppercase tracking-wide"
+                    onClick={() => setShowCreateOffer(true)}
+                    className="px-5 py-2.5 text-xs font-extrabold text-white rounded-full transition-all hover:-translate-y-0.5 ml-2 uppercase tracking-wide cursor-pointer"
                     style={{ backgroundColor: "#0a1628" }}
                   >
                     Déposer une offre
                   </button>
                   <button
-                    onClick={() => setShowRegister(true)}
-                    className="px-5 py-2.5 text-xs font-extrabold text-white rounded-full transition-all hover:-translate-y-0.5 uppercase tracking-wide"
+                    onClick={() => setShowUploadCV(true)}
+                    className="px-5 py-2.5 text-xs font-extrabold text-white rounded-full transition-all hover:-translate-y-0.5 uppercase tracking-wide cursor-pointer"
                     style={{ backgroundColor: "#00b8d9", boxShadow: "0 4px 10px rgba(0,184,217,0.2)" }}
                   >
                     Déposer un CV
@@ -267,8 +271,8 @@ export default function Navbar() {
             <div className="pt-4 flex flex-col gap-2">
                {!user && (
                  <>
-                   <button onClick={() => { setMobileOpen(false); setShowRegister(true); }} className="w-full py-3 text-xs font-extrabold text-white rounded-full bg-[#0a1628] uppercase">Déposer une offre</button>
-                   <button onClick={() => { setMobileOpen(false); setShowRegister(true); }} className="w-full py-3 text-xs font-extrabold text-white rounded-full bg-[#00b8d9] uppercase">Déposer un CV</button>
+                   <button onClick={() => { setMobileOpen(false); setShowCreateOffer(true); }} className="w-full py-3 text-xs font-extrabold text-white rounded-full bg-[#0a1628] uppercase cursor-pointer">Déposer une offre</button>
+                   <button onClick={() => { setMobileOpen(false); setShowUploadCV(true); }} className="w-full py-3 text-xs font-extrabold text-white rounded-full bg-[#00b8d9] uppercase cursor-pointer">Déposer un CV</button>
                  </>
                )}
             </div>
@@ -278,6 +282,8 @@ export default function Navbar() {
 
       <LoginModal isOpen={showLogin} onClose={() => setShowLogin(false)} onSwitchToRegister={() => { setShowLogin(false); setShowRegister(true); }} />
       <RegisterModal isOpen={showRegister} onClose={() => setShowRegister(false)} onSwitchToLogin={() => { setShowRegister(false); setShowLogin(true); }} />
+      <CreateOfferModal isOpen={showCreateOffer} onClose={() => setShowCreateOffer(false)} />
+      <UploadCVModal isOpen={showUploadCV} onClose={() => setShowUploadCV(false)} />
     </>
   );
 }
