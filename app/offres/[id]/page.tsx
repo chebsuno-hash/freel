@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "../../lib/AuthContext";
+import LoginModal from "../../components/LoginModal";
+import RegisterModal from "../../components/RegisterModal";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { 
@@ -73,18 +76,56 @@ function ApplyModal({
   jobTitle: string;
   jobRef: string;
 }) {
+  const { token } = useAuth();
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [coverLetter, setCoverLetter] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const cvInputRef = useRef<HTMLInputElement>(null);
 
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
   const handleSubmit = async () => {
+    if (!token) {
+      setError("Vous devez être connecté pour postuler.");
+      return;
+    }
     setSubmitting(true);
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 1500));
-    setSubmitting(false);
-    setSubmitted(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      if (cvFile) formData.append("cv", cvFile);
+      formData.append("coverLetter", coverLetter);
+      formData.append("jobRef", jobRef);
+
+      const res = await fetch(`${API_BASE}/cv/upload`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (res.status === 401) {
+        setError("Session expirée. Veuillez vous reconnecter.");
+        setSubmitting(false);
+        return;
+      }
+
+      if (res.status === 403) {
+        setError("Seuls les candidats peuvent postuler.");
+        setSubmitting(false);
+        return;
+      }
+
+      setSubmitting(false);
+      setSubmitted(true);
+    } catch {
+      setError("Impossible de contacter le serveur.");
+      setSubmitting(false);
+    }
   };
 
   const resetAndClose = () => {
@@ -92,6 +133,7 @@ function ApplyModal({
     setCoverLetter("");
     setSubmitted(false);
     setSubmitting(false);
+    setError(null);
     onClose();
   };
 
@@ -226,6 +268,21 @@ function ApplyModal({
                 />
               </div>
 
+              {/* Error message */}
+              {error && (
+                <div
+                  className="flex items-start gap-2 px-4 py-3 rounded-xl text-sm"
+                  style={{
+                    backgroundColor: "rgba(239,68,68,0.06)",
+                    border: "1px solid rgba(239,68,68,0.15)",
+                    color: "#dc2626",
+                  }}
+                >
+                  <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                  {error}
+                </div>
+              )}
+
               {/* Submit */}
               <button
                 onClick={handleSubmit}
@@ -285,8 +342,11 @@ function ApplyModal({
 // ─── Main Page ───────────────────────────────────────────────────
 export default function OffreDetailsPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [isSaved, setIsSaved] = useState(false);
   const [showApplyModal, setShowApplyModal] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
 
@@ -360,8 +420,12 @@ export default function OffreDetailsPage() {
     }
   };
 
-  // ── 2. Apply handler ──
+  // ── 2. Apply handler — requires auth ──
   const handleApply = () => {
+    if (!user) {
+      setShowLogin(true);
+      return;
+    }
     setShowApplyModal(true);
   };
 
@@ -618,6 +682,10 @@ export default function OffreDetailsPage() {
 
       {/* Toast Notification */}
       <Toast message={toastMsg} visible={toastVisible} />
+
+      {/* Auth Modals */}
+      <LoginModal isOpen={showLogin} onClose={() => setShowLogin(false)} onSwitchToRegister={() => { setShowLogin(false); setShowRegister(true); }} />
+      <RegisterModal isOpen={showRegister} onClose={() => setShowRegister(false)} onSwitchToLogin={() => { setShowRegister(false); setShowLogin(true); }} />
     </>
   );
 }

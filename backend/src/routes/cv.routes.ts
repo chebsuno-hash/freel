@@ -46,12 +46,12 @@ router.post(
 
 /**
  * @route   POST /api/cv/parse
- * @desc    Upload and parse a CV file (public demo route for profile wizard)
- * @access  Public (no JWT required — for onboarding flow)
- * @note    In production, replace with auth-protected route above
+ * @desc    Upload and parse a CV file (for profile wizard)
+ * @access  Private (JWT required)
  */
 router.post(
   "/parse",
+  authMiddleware,
   (req: Request, res: Response, next: NextFunction) => {
     uploadMiddleware(req, res, (err: any) => {
       if (err) {
