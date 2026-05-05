@@ -88,13 +88,13 @@ export async function register(req: Request, res: Response): Promise<void> {
 
     // Create user + profile in a transaction
     const user = await prisma.$transaction(async (tx) => {
-      // Create user (auto-verified in dev mode)
+      // Create user (must verify email before login)
       const newUser = await tx.user.create({
         data: {
           email,
           password: hashedPassword,
           role,
-          isVerified: true,
+          isVerified: false,
           verificationToken,
         },
       });
@@ -123,24 +123,16 @@ export async function register(req: Request, res: Response): Promise<void> {
       return newUser;
     });
 
-    // Generate JWT immediately (no email verification needed)
-    const token = signToken({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-    });
+    // Send verification email
+    try {
+      await sendVerificationEmail(user.email, verificationToken);
+    } catch (emailErr) {
+      console.error("[AUTH] Failed to send verification email:", emailErr);
+    }
 
     res.status(201).json({
       success: true,
-      message: "Inscription réussie !",
-      data: {
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-        },
-      },
+      message: "Inscription réussie ! Vérifiez votre email pour activer votre compte.",
     });
   } catch (error) {
     console.error("[AUTH] Register error:", error);
@@ -257,6 +249,16 @@ export async function login(req: Request, res: Response): Promise<void> {
       res.status(401).json({
         success: false,
         message: "Email ou mot de passe incorrect.",
+      });
+      return;
+    }
+
+    // Check email verification
+    if (!user.isVerified) {
+      res.status(403).json({
+        success: false,
+        message: "Veuillez vérifier votre email avant de vous connecter.",
+        code: "EMAIL_NOT_VERIFIED",
       });
       return;
     }

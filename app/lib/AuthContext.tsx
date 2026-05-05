@@ -125,11 +125,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         const json = await res.json();
 
-        // Auto-login if token is returned (dev mode — no email verification)
-        if (json.success && json.data?.token) {
-          saveAuth(json.data.token, json.data.user);
-        }
-
         return {
           success: json.success,
           message: json.message || "Erreur lors de l'inscription.",

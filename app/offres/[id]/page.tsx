@@ -371,8 +371,12 @@ export default function OffreDetailsPage() {
     setTimeout(() => setToastVisible(false), 2500);
   };
 
-  // ── 1. Save / Unsave handler ──
+  // ── 1. Save / Unsave handler ── requires auth ──
   const handleSave = () => {
+    if (!user) {
+      setShowLogin(true);
+      return;
+    }
     try {
       const saved: string[] = JSON.parse(
         localStorage.getItem("freelanceit_savedOffers") || "[]"

@@ -100,12 +100,8 @@ export default function RegisterModal({
     });
 
     if (result.success) {
-      // Auto-logged in — redirect to dashboard
-      handleClose();
-      window.location.href =
-        form.role === "RECRUTEUR"
-          ? "/dashboard/recruteur"
-          : "/dashboard/candidat";
+      // Show success screen — user must verify email
+      setSuccess(true);
     } else {
       setError(result.message);
     }
