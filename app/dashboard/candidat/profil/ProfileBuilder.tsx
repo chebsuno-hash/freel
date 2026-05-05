@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "../../../lib/AuthContext";
 import {
   HiDocumentArrowUp, HiUser, HiBriefcase, HiClock, HiAcademicCap,
   HiWrenchScrewdriver, HiCheckCircle, HiChevronLeft, HiChevronRight,
@@ -33,6 +34,7 @@ const emptyForm: FormData = {
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 export default function ProfileBuilder() {
+  const { token } = useAuth();
   const [step, setStep] = useState(0);
   const [done, setDone] = useState<Set<number>>(new Set());
   const [form, setForm] = useState<FormData>(emptyForm);
@@ -56,7 +58,10 @@ export default function ProfileBuilder() {
     try {
       const res = await fetch(`${API_BASE}/profiles`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(form),
       });
       const json = await res.json();
@@ -171,6 +176,9 @@ function StepCV({ onParsed, onSkip }: { onParsed: (d: Partial<FormData>) => void
 
       const res = await fetch(`${API_BASE}/cv/parse`, {
         method: "POST",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: formData,
       });
 

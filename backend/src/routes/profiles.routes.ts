@@ -1,13 +1,15 @@
 import { Router } from "express";
+import { authMiddleware } from "../middleware/auth";
 import { createPublicProfile, listPublicProfiles } from "../controllers/profiles.controller";
 
 const router = Router();
 
 /**
  * @route   POST /api/profiles
- * @desc    Create a candidate profile (public, in-memory for MVP)
+ * @desc    Create a candidate profile
+ * @access  Private (JWT required)
  */
-router.post("/", createPublicProfile);
+router.post("/", authMiddleware, createPublicProfile);
 
 /**
  * @route   GET /api/profiles

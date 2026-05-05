@@ -3,6 +3,9 @@
 import { useState, useMemo, useRef } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import LoginModal from "../components/LoginModal";
+import RegisterModal from "../components/RegisterModal";
+import { useAuth } from "../lib/AuthContext";
 import {
   HiUserGroup,
   HiChatBubbleLeftRight,
@@ -206,12 +209,15 @@ const CATEGORIES = [
 
 // ─── Main Page ──────────────────────────────────────────────────
 export default function CommunautePage() {
+  const { user } = useAuth();
   const [toastMsg, setToastMsg] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
   const [email, setEmail] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [registeredEvents, setRegisteredEvents] = useState<number[]>([]);
   const [contactedMentors, setContactedMentors] = useState<number[]>([]);
+  const [showLogin, setShowLogin] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = (msg: string) => {
@@ -221,12 +227,14 @@ export default function CommunautePage() {
   };
 
   const handleEventRegister = (eventId: number) => {
+    if (!user) { setShowLogin(true); return; }
     if (registeredEvents.includes(eventId)) return;
     setRegisteredEvents((prev) => [...prev, eventId]);
     showToast("Inscription confirmée !");
   };
 
   const handleMentorContact = (mentorId: number) => {
+    if (!user) { setShowLogin(true); return; }
     if (contactedMentors.includes(mentorId)) return;
     setContactedMentors((prev) => [...prev, mentorId]);
     showToast("Demande envoyée !");
@@ -768,6 +776,10 @@ export default function CommunautePage() {
       />
 
       <Toast message={toastMsg} visible={toastVisible} />
+
+      {/* Auth Modals */}
+      <LoginModal isOpen={showLogin} onClose={() => setShowLogin(false)} onSwitchToRegister={() => { setShowLogin(false); setShowRegister(true); }} />
+      <RegisterModal isOpen={showRegister} onClose={() => setShowRegister(false)} onSwitchToLogin={() => { setShowRegister(false); setShowLogin(true); }} />
     </>
   );
 }
