@@ -9,7 +9,11 @@ import { sendVerificationEmail } from "../utils/email";
 import { env } from "../config/env";
 
 const prisma = new PrismaClient();
-const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
+const googleClient = new OAuth2Client(
+  env.GOOGLE_CLIENT_ID,
+  env.GOOGLE_CLIENT_SECRET,
+  "postmessage" // redirect_uri for popup-based auth code flow
+);
 
 // ─── Validation Schemas ───────────────────────
 
@@ -317,12 +321,7 @@ export async function googleLogin(
     }
 
     // Exchange authorization code for tokens
-    const { tokens } = await googleClient.getToken({
-      code,
-      client_id: env.GOOGLE_CLIENT_ID,
-      client_secret: env.GOOGLE_CLIENT_SECRET,
-      redirect_uri: "postmessage", // Required for popup-based auth code flow
-    });
+    const { tokens } = await googleClient.getToken(code);
 
     if (!tokens.id_token) {
       res.status(401).json({
