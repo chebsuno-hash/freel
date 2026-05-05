@@ -150,6 +150,7 @@ function StepFooter({ onPrev, onNext, nextLabel = "Suivant", showPrev = true }: 
 /* ─── Step 0: CV Upload + API Call ────────── */
 
 function StepCV({ onParsed, onSkip }: { onParsed: (d: Partial<FormData>) => void; onSkip: () => void }) {
+  const { token } = useAuth();
   const [dragging, setDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
