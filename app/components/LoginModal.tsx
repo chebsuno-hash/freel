@@ -89,16 +89,16 @@ export default function LoginModal({
   const handleGoogleClick = () => {
     try {
       const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-      if (!clientId || clientId === "mock-id-just-for-testing") {
+      if (!clientId) {
         setError("Google OAuth n'est pas configuré. Utilisez l'inscription par email.");
         return;
       }
 
-      // Use the Google Identity Services API directly
+      // Use Google Identity Services — Authorization Code flow
       const google = (window as unknown as Record<string, unknown>).google as {
         accounts: {
           oauth2: {
-            initTokenClient: (config: Record<string, unknown>) => { requestAccessToken: () => void };
+            initCodeClient: (config: Record<string, unknown>) => { requestCode: () => void };
           };
         };
       } | undefined;
@@ -108,16 +108,17 @@ export default function LoginModal({
         return;
       }
 
-      const client = google.accounts.oauth2.initTokenClient({
+      const client = google.accounts.oauth2.initCodeClient({
         client_id: clientId,
-        scope: "email profile",
-        callback: async (response: { access_token?: string; error?: string }) => {
-          if (response.error || !response.access_token) {
+        scope: "email profile openid",
+        ux_mode: "popup",
+        callback: async (response: { code?: string; error?: string }) => {
+          if (response.error || !response.code) {
             setError("La connexion Google a échoué.");
             return;
           }
           setLoading(true);
-          const result = await googleLogin(response.access_token);
+          const result = await googleLogin(response.code);
           if (result.success) {
             onClose();
             const storedUser = localStorage.getItem("user");
@@ -135,7 +136,7 @@ export default function LoginModal({
         },
       });
 
-      client.requestAccessToken();
+      client.requestCode();
     } catch {
       setError("Erreur lors de l'initialisation de Google OAuth.");
     }

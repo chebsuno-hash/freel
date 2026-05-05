@@ -35,9 +35,9 @@ router.get("/verify-email", verifyEmail);
 
 /**
  * @route   POST /api/auth/google
- * @desc    Login/Register with Google OAuth
+ * @desc    Login/Register with Google OAuth (authorization code exchange)
  * @access  Public
- * @body    { credential, role? }
+ * @body    { code, role? }
  */
 router.post("/google", googleLogin);
 

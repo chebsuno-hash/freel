@@ -142,12 +142,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ─── Google Login ─────────────────────────────
 
   const googleLogin = useCallback(
-    async (credential: string, role?: string): Promise<AuthResult> => {
+    async (code: string, role?: string): Promise<AuthResult> => {
       try {
         const res = await fetch(`${API_BASE}/auth/google`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ credential, role }),
+          body: JSON.stringify({ code, role }),
         });
         const json = await res.json();
 

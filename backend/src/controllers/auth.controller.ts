@@ -298,17 +298,17 @@ export async function googleLogin(
   res: Response
 ): Promise<void> {
   try {
-    const { credential, role } = req.body;
+    const { code, role } = req.body;
 
-    if (!credential) {
+    if (!code) {
       res.status(400).json({
         success: false,
-        message: "Token Google manquant.",
+        message: "Code d'autorisation Google manquant.",
       });
       return;
     }
 
-    if (!env.GOOGLE_CLIENT_ID) {
+    if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
       res.status(500).json({
         success: false,
         message: "Google OAuth n'est pas configuré sur ce serveur.",
@@ -316,9 +316,25 @@ export async function googleLogin(
       return;
     }
 
-    // Verify the Google token
+    // Exchange authorization code for tokens
+    const { tokens } = await googleClient.getToken({
+      code,
+      client_id: env.GOOGLE_CLIENT_ID,
+      client_secret: env.GOOGLE_CLIENT_SECRET,
+      redirect_uri: "postmessage", // Required for popup-based auth code flow
+    });
+
+    if (!tokens.id_token) {
+      res.status(401).json({
+        success: false,
+        message: "Impossible d'obtenir les informations Google.",
+      });
+      return;
+    }
+
+    // Verify the ID token
     const ticket = await googleClient.verifyIdToken({
-      idToken: credential,
+      idToken: tokens.id_token,
       audience: env.GOOGLE_CLIENT_ID,
     });
 
